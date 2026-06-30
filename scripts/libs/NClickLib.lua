@@ -1,13 +1,24 @@
 local mod = modApi:getCurrentMod()
+local LocalVersion = 1.0
+if not NClickVersions then
+	NClickVersions = {}
+end
+
+
+if not NClickVersions[LocalVersion] then
+
+NClickVersions[LocalVersion] = true
 local path = mod.scriptPath
 local weaponArmed = require(path .."libs/weaponArmed")
 Clicks = {}
+
 PhaseClicks = {{}}
 FiredUsingComfirm = false
 Phase = 1
 PreventDouble = true
 NClickSkill = Skill:new{
 	TwoClick = true,
+	NClickVersion = LocalVersion,
 	PhaseChanges = {nil},
 	ConfirmationFuncs = {nil},
 	NClick = true
@@ -87,6 +98,7 @@ local function EVENT_onModsLoaded()
 
 	modapiext:addPawnSelectedHook(function(_, pawn)
 			Clicks = {}
+			PhaseClicks = {{}}
 			Phase = 1
 	end)
 
@@ -96,6 +108,7 @@ weaponArmed.events.onWeaponArmed:subscribe(function(skill, pawnId)
 	local pawn = Game:GetPawn(pawnId)
 	if _G[skill.__Id].NClick then
 		Clicks = {}
+		PhaseClicks = {{}}
 		Phase = 1
 	end
 end)
@@ -117,18 +130,21 @@ local ConfirmWeapon = function(scancode)
 				end
 			end
 		if Weapon then
-		if _G[Weapon].Confirmation then
-			if (_G[Weapon].ConfirmationFuncs)[Phase] then
-				 _G[Weapon].ConfirmationFuncs[Phase]()
-				Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
-			else
-				Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
+			if _G[Weapon].NClickVersion == LocalVersion then
+				if _G[Weapon].Confirmation then
+					if (_G[Weapon].ConfirmationFuncs)[Phase] then
+						if _G[Weapon].ConfirmationFuncs[Phase](Pawn:GetSpace(),_G[Weapon]) == "true" then
+							Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
+						else
+							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
+						end
+					else
+						Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
+					end
+				end
 			end
-		end
 		end
 	end
 end
-if not DoesEventExist then
-	modApi.events.onKeyPressed:subscribe(ConfirmWeapon)
-	DoesEventExist = true
+modApi.events.onKeyPressed:subscribe(ConfirmWeapon)
 end
