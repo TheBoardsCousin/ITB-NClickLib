@@ -117,23 +117,27 @@ end)
 modApi.events.onModsLoaded:subscribe(EVENT_onModsLoaded)
 
 local ConfirmWeapon = function(scancode)
+
 	if (scancode == 13) and Board then
 		local Pawn = nil
 		local Weapon = false
-			for i = 0, 2 do
-				if Board:GetPawn(i) then
-					if Board:GetPawn(i):GetArmedWeapon() then
-						Pawn = Board:GetPawn(i)
+		local AllPawns = extract_table(Board:GetPawns(TEAM_ANY))
+			for i = 1, #AllPawns do
+				local curr = AllPawns[i]
+				if Board:GetPawn(curr) then
+					if Board:GetPawn(curr):GetArmedWeapon() then
+						Pawn = Board:GetPawn(curr)
 						Weapon = Pawn:GetArmedWeapon()
 						break
 					end
 				end
 			end
+
 		if Weapon then
 			if _G[Weapon].NClickVersion == LocalVersion then
 				if _G[Weapon].Confirmation then
 					if (_G[Weapon].ConfirmationFuncs)[Phase] then
-						if _G[Weapon].ConfirmationFuncs[Phase](Pawn:GetSpace(),_G[Weapon]) == "true" then
+						if not(_G[Weapon].ConfirmationFuncs[Phase](Pawn:GetSpace(),_G[Weapon]) == nil) then
 							Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
 						else
 							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
