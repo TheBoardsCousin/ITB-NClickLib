@@ -1,4 +1,4 @@
-# NClickLib
+# NClickLib V1.1
 An Into the Breach library for making complex targeting systems.
 
 
@@ -20,3 +20,13 @@ And if you want to know how to use the most recent version's new features [Expan
 It is sphaghetti code but making it burnt me out so as of now I'm not working on a more understandable demo :cry:
 
 thanks generic for letting me make funny boom bot weapon
+
+
+
+
+
+Changelog:
+
+8/15/2026: Version 1.1
+
+Added a clickable button for confirmation weapons. No changes should be needed to your code to implement but it's reccomended you replace any "function() end" in confirmation function lists with nil. It just makes the button go away when it's supposed to [But if you don't make these changes, the button won't have any odd gameplay affects]
