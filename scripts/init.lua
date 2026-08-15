@@ -3,7 +3,7 @@ local mod = {
 	name = "NClickLib",
 	icon = "icon.png",
 	description = "A library allowing for the creation of NClick weapons",
-	version = "1.0",
+	version = "1.1",
 	modApiVersion = "2.8.3",
 	gameVersion = "1.2.88",
 }

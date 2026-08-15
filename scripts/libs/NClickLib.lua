@@ -1,5 +1,5 @@
 local mod = modApi:getCurrentMod()
-local LocalVersion = 1.0
+local LocalVersion = 1.1
 if not NClickVersions then
 	NClickVersions = {}
 end
@@ -118,7 +118,14 @@ modApi.events.onModsLoaded:subscribe(EVENT_onModsLoaded)
 
 local ConfirmWeapon = function(scancode)
 
-	if (scancode == 13) and Board then
+	if (scancode == 13) then
+		AdvanceConfirmationWeapon()
+	end
+end
+
+
+function AdvanceConfirmationWeapon()
+	if Board then
 		local Pawn = nil
 		local Weapon = false
 		local AllPawns = extract_table(Board:GetPawns(TEAM_ANY))
@@ -143,12 +150,15 @@ local ConfirmWeapon = function(scancode)
 							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
 						end
 					else
-						Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
+							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
 					end
 				end
 			end
 		end
 	end
 end
+
+require(path .."libs/NClickUi")
+
 modApi.events.onKeyPressed:subscribe(ConfirmWeapon)
 end
