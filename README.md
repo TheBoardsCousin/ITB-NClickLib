@@ -3,7 +3,7 @@ An Into the Breach library for making complex targeting systems.
 
 
 
-Thanks Lenonymous for the weaponArmed and menu library
+Thanks Lenonymous for the weaponArmed and menu library and also for making replacerepair which is how I figured out UI crap and also stole stuff so the button fades out when you hit a menu
 
 Thanks Truelch for inspiring this, helping find some bugs, and for making some super cool weapons using the library!
 
@@ -13,16 +13,13 @@ Thanks to Das Kiefer for attempting to help with some UI stuff [I ended up doing
 
 Thanks to the ITB Modding community for being awesome
 
-If you really want a demo of how to use this, check out https://github.com/TheBoardsCousin/ITB-TargetAcquirers [Is missing a couple of the newest features]
+If you want a demo of how to use this, check out https://github.com/TheBoardsCousin/ITB-TargetAcquirers [Is missing a couple of the newest features]
 
 And if you want to know how to use the most recent version's new features [Expanding capabilities of confirmation functions] you can try and use https://github.com/TheBoardsCousin/ITB-BoomWeapon to figure it out
 
 It is sphaghetti code but making it burnt me out so as of now I'm not working on a more understandable demo :cry:
 
-thanks generic for letting me make funny boom bot weapon
-
-
-
+thanks generic for letting me make funny boom bot weapons
 
 
 Changelog:
