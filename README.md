@@ -1,4 +1,4 @@
-# NClickLib V1.1
+# NClickLib V2.0
 An Into the Breach library for making complex targeting systems.
 
 
