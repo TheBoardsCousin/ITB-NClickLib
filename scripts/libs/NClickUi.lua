@@ -1,6 +1,7 @@
 local font = sdlext.font("fonts/JustinFont11Bold.ttf", 40)
 local set = deco.uifont.title.set
-local LocalVersion = 1.1
+
+local LocalVersion = 2.0
 local mod = modApi:getCurrentMod()
 local path = mod.scriptPath
 local menu = require(path.."libs/menu")

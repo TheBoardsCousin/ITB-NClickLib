@@ -1,94 +1,190 @@
 local mod = modApi:getCurrentMod()
-local LocalVersion = 1.1
-if not NClickVersions then
-	NClickVersions = {}
+
+--[[ List of changes:
+	
+	*PhaseChange, SkillEffect, and TargetArea functions all now take the inputs p1, p2, self, Clicks, and PhaseClicks, in that order.
+	You can edit the lists in your functions, and it won't effect the global version of said list.
+
+	*You must now define and return ret in the applicable functions.
+
+	*Confirmation Functions, instead of directly changing the phase, now return a value. nil, false, or the function not existing all do nothing. Returning true fires the weapon. Returning a number sets the weapon to that phase. While I think this will still work due to Phase needing to be global, I reccomend changing confirmation functions to reflect this change nonetheless.
+
+	TipImages can now be included in the NClickSkill.
+	They are defined with the standard TipImage board layout, minus the Target point.
+	Then, define a second field called TipImageData, which is a keyed list of p2, Phase, Clicks, and PhaseClicks. This just directly calls the SkillEffect for a specific phase. You don't need to define values that you aren't using.
+	TipImageData can take a list of those keyed arrays, and it will cycle through the given data. See X_MissileSpam in Target Acquirers for an example if I'm not explaining this well.
+
+	New functions: CopyTable and FilteredPointList, CopyTable perfectly copies a table [Including nested ones] and FilteredPointList takes a list of points and returns them in the same order but with duplicates removed.
+	
+]]--
+
+
+--Some helper functions, to make manipulating pointlists a bit easier
+function CopyTable(Table)
+    local CopyTo = {}
+    for i = 1, #Table do
+        if type(Table[i]) == 'table' then
+            CopyTo[i] = CopyTable(Table[i])
+        else
+            CopyTo[i]=Table[i]
+        end
+    end
+    return CopyTo
 end
 
+function FilteredPointList(List)
+    local temp = {}
+    local temp2 = {}
+    for i = 1, #List do
+	local hash = List[i].x*10+List[i].y
+        if not temp[hash] then
+            temp[hash] = true
+            temp2[#temp2+1] = List[i]
+        end
+    end
+    return temp2
+end
+
+
+--Some version control so different versions can exist and won't override eachother
+local LocalVersion = 2.0
+if not NClickVersions then
+	NClickVersions = {}
+end 
 
 if not NClickVersions[LocalVersion] then
 
 NClickVersions[LocalVersion] = true
 local path = mod.scriptPath
 local weaponArmed = require(path .."libs/weaponArmed")
-Clicks = {}
 
-PhaseClicks = {{}}
-FiredUsingComfirm = false
+local Clicks = {}
+local PhaseClicks = {{}}
 Phase = 1
-PreventDouble = true
+local PreventDouble = true
+
+
+
 NClickSkill = Skill:new{
 	TwoClick = true,
+	TipImageCounter = 1,
 	NClickVersion = LocalVersion,
-	PhaseChanges = {nil},
-	ConfirmationFuncs = {nil},
 	NClick = true
 }
+
 function NClickSkill:GetTargetArea(p1)
 	local ret = PointList()
-	ret:push_back(Point(10,10))
-	if self.TargetAreas[Phase] then
-		self.TargetAreas[Phase](ret, p1, self)
+
+	if not Board:IsTipImage() then
+		if self.TargetAreas[Phase] then
+			ret = self.TargetAreas[Phase](p1, nil, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+		else
+			LOG("Attempted to use TargetArea ", Phase)
+		end
+
+		ret:push_back(Point(10,10))
 	else
-		LOG("Attempted to use TargetArea ", Phase)
+		for i = 0, 7 do
+			for j = 0, 7 do
+				ret:push_back(Point(i,j))
+			end
+		end
 	end
+
 	return ret
 end
 
 function NClickSkill:IsTwoClickException(p1,p2)
-	if p2==Point(10,10) then
-		Clicks = {}
-		PhaseClicks = {{}}
-		Phase = 1
-		return true
+	if not Board:IsTipImage() then
+		if p2==Point(10,10) then
+
+			Clicks = {}
+			PhaseClicks = {{}}
+			Phase = 1
+			return true
+
+		else
+
+			local NextPhase = (self.PhaseChanges[Phase] or function(a,b,c,d,e) return Phase+1 end)(p1, p2, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+
+
+			if (NextPhase) > (self.Phases) then
+				Clicks = {}
+				PhaseClicks = {{}}
+				Phase = 1
+				return true
+			end
+
+			return false
+
+		end
+
 	else
-
-	local NextPhase = (self.PhaseChanges[Phase] or function(a,b,c) return Phase+1 end)(p1,p2,self) --Lua is ridiculous for letting me do this line
-
-
-	if (NextPhase) > (self.Phases) then
-		
-		Clicks = {}
-		PhaseClicks = {{}}
-		Phase = 1
 		return true
-	end
-	return false
+
 	end
 
 end
 
 function NClickSkill:GetSkillEffect(p1, p2)
-		local ret = SkillEffect()
-		ret:AddDamage(SpaceDamage(p1, 0))
-		self.SkillEffects[Phase](ret, p1, p2, self)
-		return ret
+	if not Board:IsTipImage() then
+
+		return self.SkillEffects[Phase](p1, p2, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+
+	else
+		local ClickData = self.TipImageData
+		if not (ClickData.Phase) then
+			self.TipImageCounter = 1+(self.TipImageCounter % #self.TipImageData)
+			ClickData = self.TipImageData[self.TipImageCounter]
+		end
+		return self.SkillEffects[ClickData.Phase](p1, ClickData.p2 or nil, self, CopyTable(ClickData.Clicks or {}), CopyTable(ClickData.PhaseClicks or {}))
+
+	end
+
 end
 
 function NClickSkill:GetSecondTargetArea(p1, p2)
+	if not Board:IsTipImage() then
 	local ret = PointList()
-
 	if (Board:GetPawn(p1):GetFirstClick() == Point(1000,1000)) then
-		local NextPhase = (self.PhaseChanges[Phase] or function(a,b,c) return Phase+1 end)(p1,p2,self)
+
+		local NextPhase = (self.PhaseChanges[Phase] or function(a,b,c,d,e) return Phase+1 end)(p1, p2, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+
 		if self.TargetAreas[NextPhase] then
-			self.TargetAreas[NextPhase](ret,p1,self,p2)
+
+			ret = self.TargetAreas[NextPhase](p1, p2, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+
 		end
+
 	else
 		if PreventDouble then
+
 			if not PhaseClicks[Phase] then
 				PhaseClicks[Phase] = {}
 			end
+
 			(PhaseClicks[Phase])[#(PhaseClicks[Phase])+1]=p2
-			Phase = (self.PhaseChanges[Phase] or function(a,b,c) return Phase+1 end)(p1,p2,self)
+
+			Phase = (self.PhaseChanges[Phase] or function(a,b,c,d,e) return Phase+1 end)(p1, p2, self, CopyTable(Clicks), CopyTable(PhaseClicks))
+
 			Clicks[#Clicks+1] = p2
+
 			PreventDouble = false
 		else
+
 			PreventDouble = true
+
 		end
 	end
 	return ret
+	else
+	local ret = PointList()
+	return ret
+	end
 end
 
 function NClickSkill:GetFinalEffect(p1, p2, p3)
+
 	local ret = SkillEffect()
 	LOG("Error Occurred. Shouldn't have been able to get here.")
 	return ret
@@ -105,12 +201,9 @@ local function EVENT_onModsLoaded()
 end
 
 weaponArmed.events.onWeaponArmed:subscribe(function(skill, pawnId)
-	local pawn = Game:GetPawn(pawnId)
-	if _G[skill.__Id].NClick then
-		Clicks = {}
-		PhaseClicks = {{}}
-		Phase = 1
-	end
+	Clicks = {}
+	PhaseClicks = {{}}
+	Phase = 1
 end)
 
 
@@ -144,13 +237,15 @@ function AdvanceConfirmationWeapon()
 			if _G[Weapon].NClickVersion == LocalVersion then
 				if _G[Weapon].Confirmation then
 					if (_G[Weapon].ConfirmationFuncs)[Phase] then
-						if not(_G[Weapon].ConfirmationFuncs[Phase](Pawn:GetSpace(),_G[Weapon]) == nil) then
-							Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
-						else
-							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
+						local result = _G[Weapon].ConfirmationFuncs[Phase](Pawn:GetSpace(), _G[Weapon], CopyTable(Clicks), CopyTable(PhaseClicks))
+						if result then
+							if result == true then
+								Pawn:FireWeapon(Point(10,10),Pawn:GetArmedWeaponId())
+							else
+								Phase = result
+								Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
+							end
 						end
-					else
-							Pawn:FireWeapon(Point(11,11),Pawn:GetArmedWeaponId())
 					end
 				end
 			end
